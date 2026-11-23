@@ -1,0 +1,46 @@
+# Local development stack: Django 5 + MySQL 8.4 (same major version as production).
+# The SQLite fallback in backend/config/settings.py exists only for machines without Docker.
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: scs_library
+      MYSQL_USER: library
+      MYSQL_PASSWORD: library
+      MYSQL_ROOT_PASSWORD: root
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: ./backend
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: dev-compose-only-key
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DB_ENGINE: mysql
+      DB_NAME: scs_library
+      DB_USER: library
+      DB_PASSWORD: library
+      DB_HOST: db
+      DB_PORT: "3306"
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

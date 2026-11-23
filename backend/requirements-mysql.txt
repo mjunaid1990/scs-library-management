@@ -1,0 +1,2 @@
+# MySQL driver, installed separately so a SQLite-only workstation can still run the app.
+mysqlclient>=2.2,<3.0
